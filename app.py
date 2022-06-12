@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from matplotlib import pyplot as plt
 
 import cv2 
@@ -7,7 +7,7 @@ import tensorflow as tf
 
 app = Flask(__name__)
 SAVED_MODEL_PATH = "./savedgraphmodel/saved_model"
-IMAGE_PATH = "./test.jpg"
+IMAGE_PATH = "./test.png"
 
 label_mapping = {
     '1': 'kantong',
@@ -22,12 +22,16 @@ label_mapping = {
 imported = tf.saved_model.load(SAVED_MODEL_PATH)
 f = imported.signatures['serving_default']
 
-@app.route('/')
+@app.route('/', methods=['POST'])
 def predict():
-    #get image by http-get
-    image_from_api = IMAGE_PATH
-    img = cv2.imread(image_from_api)
+    request_img = request.files['img'].read()
+    #convert string data to numpy array
+    npimg = np.fromstring(request_img, np.uint8)
+
+# convert numpy array to image
+    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
     images_np = np.array(img)
+
 
     # change file image into numpy array
     input_tensor = tf.convert_to_tensor(np.expand_dims(images_np, 0), dtype=tf.uint8)
@@ -39,7 +43,12 @@ def predict():
     hi_acc_idx = detections['detection_scores'].argmax()
     int_label = detections['detection_classes'][hi_acc_idx]
     
-    return label_mapping['{}'.format(int_label)]
+    # return json, objects is list of string
+    return {
+      "objects" : [
+        label_mapping['{}'.format(int_label)],
+        ]
+      }
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1')
