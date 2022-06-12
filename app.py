@@ -2,6 +2,7 @@ from flask import Flask, request
 from base64 import decode
 from matplotlib import pyplot as plt
 
+import os
 import cv2 
 import numpy as np
 import tensorflow as tf
@@ -63,4 +64,4 @@ def predict():
       }
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1')
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
