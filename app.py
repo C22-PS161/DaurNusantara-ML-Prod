@@ -42,9 +42,6 @@ def predict():
 # convert numpy array to image
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
     images_np = np.array(img)
-    img = cv2.imread('./test.jpg')
-    images_np = np.array(img)
-
 
     # change file image into numpy array
     input_tensor = tf.convert_to_tensor(np.expand_dims(images_np, 0), dtype=tf.uint8)
