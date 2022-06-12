@@ -1,4 +1,5 @@
 from flask import Flask, request
+from base64 import decode
 from matplotlib import pyplot as plt
 
 import cv2 
@@ -22,14 +23,26 @@ label_mapping = {
 imported = tf.saved_model.load(SAVED_MODEL_PATH)
 f = imported.signatures['serving_default']
 
+def get_results(detections, threshold):
+  last_valid_idx = 0
+  while (detections['detection_scores'][last_valid_idx] >= threshold):
+    last_valid_idx += 1
+  
+  used_scores = detections['detection_scores'][:last_valid_idx]
+  used_classes = detections['detection_classes'][:last_valid_idx]
+  return used_scores, used_classes
+
 @app.route('/', methods=['POST'])
 def predict():
+    threshold = float(request.form['threshold'])
     request_img = request.files['img'].read()
     #convert string data to numpy array
     npimg = np.fromstring(request_img, np.uint8)
 
 # convert numpy array to image
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+    images_np = np.array(img)
+    img = cv2.imread('./test.jpg')
     images_np = np.array(img)
 
 
@@ -40,14 +53,16 @@ def predict():
     detections['detection_classes'] = detections['detection_classes'].numpy().astype(np.int64)[0]
     detections['detection_scores'] = detections['detection_scores'][0].numpy()
 
-    hi_acc_idx = detections['detection_scores'].argmax()
-    int_label = detections['detection_classes'][hi_acc_idx]
+    used_scores, used_classes = get_results(detections, threshold)
+    print(used_classes)
+
+    decoded_classes = []
+    for i in range (len(used_classes)):
+      decoded_classes.append(label_mapping['{}'.format(used_classes[i])])
     
     # return json, objects is list of string
     return {
-      "objects" : [
-        label_mapping['{}'.format(int_label)],
-        ]
+      "objects" : decoded_classes
       }
 
 if __name__ == '__main__':
